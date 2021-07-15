@@ -435,14 +435,19 @@ EvalStage makeUnion(std::vector<EvalStage> inputStages,
 EvalStage makeHashAgg(EvalStage stage,
                       sbe::value::SlotVector gbs,
                       sbe::value::SlotMap<std::unique_ptr<sbe::EExpression>> aggs,
+                      sbe::value::SlotVector seekKeys,
                       boost::optional<sbe::value::SlotId> collatorSlot,
                       PlanNodeId planNodeId) {
     stage.outSlots = gbs;
     for (auto& [slot, _] : aggs) {
         stage.outSlots.push_back(slot);
     }
-    stage.stage = sbe::makeS<sbe::HashAggStage>(
-        std::move(stage.stage), std::move(gbs), std::move(aggs), collatorSlot, planNodeId);
+    stage.stage = sbe::makeS<sbe::HashAggStage>(std::move(stage.stage),
+                                                std::move(gbs),
+                                                std::move(aggs),
+                                                std::move(seekKeys),
+                                                collatorSlot,
+                                                planNodeId);
     return stage;
 }
 

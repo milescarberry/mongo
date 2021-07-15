@@ -53,6 +53,9 @@ namespace sbe {
  * determining whether two group-by keys are equal. For instance, the plan may require us to do a
  * case-insensitive group on a string field.
  *
+ * The optional 'seekKeys', if provided, limit the results returned from the hash table only to
+ * those equal to seekKeys.
+ *
  * Debug string representation:
  *
  *  group [<group by slots>] [slot_1 = expr_1, ..., slot_n = expr_n] collatorSlot? childStage
@@ -62,6 +65,7 @@ public:
     HashAggStage(std::unique_ptr<PlanStage> input,
                  value::SlotVector gbs,
                  value::SlotMap<std::unique_ptr<EExpression>> aggs,
+                 value::SlotVector seekKeysSlots,
                  boost::optional<value::SlotId> collatorSlot,
                  PlanNodeId planNodeId);
 
@@ -89,10 +93,14 @@ private:
     const value::SlotVector _gbs;
     const value::SlotMap<std::unique_ptr<EExpression>> _aggs;
     const boost::optional<value::SlotId> _collatorSlot;
+    const value::SlotVector _seekKeysSlots;
 
     value::SlotAccessorMap _outAccessors;
     std::vector<value::SlotAccessor*> _inKeyAccessors;
     std::vector<std::unique_ptr<HashKeyAccessor>> _outKeyAccessors;
+
+    std::vector<value::SlotAccessor*> _seekKeysAccessors;
+    value::MaterializedRow _seekKeys;
 
     std::vector<std::unique_ptr<HashAggAccessor>> _outAggAccessors;
     std::vector<std::unique_ptr<vm::CodeFragment>> _aggCodes;

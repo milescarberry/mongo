@@ -38,13 +38,16 @@ namespace sbe {
 HashAggStage::HashAggStage(std::unique_ptr<PlanStage> input,
                            value::SlotVector gbs,
                            value::SlotMap<std::unique_ptr<EExpression>> aggs,
+                           value::SlotVector seekKeysSlots,
                            boost::optional<value::SlotId> collatorSlot,
                            PlanNodeId planNodeId)
     : PlanStage("group"_sd, planNodeId),
       _gbs(std::move(gbs)),
       _aggs(std::move(aggs)),
-      _collatorSlot(collatorSlot) {
+      _collatorSlot(collatorSlot),
+      _seekKeysSlots(std::move(seekKeysSlots)) {
     _children.emplace_back(std::move(input));
+    invariant(_seekKeysSlots.empty() || _seekKeysSlots.size() == _gbs.size());
 }
 
 std::unique_ptr<PlanStage> HashAggStage::clone() const {
@@ -52,8 +55,12 @@ std::unique_ptr<PlanStage> HashAggStage::clone() const {
     for (auto& [k, v] : _aggs) {
         aggs.emplace(k, v->clone());
     }
-    return std::make_unique<HashAggStage>(
-        _children[0]->clone(), _gbs, std::move(aggs), _collatorSlot, _commonStats.nodeId);
+    return std::make_unique<HashAggStage>(_children[0]->clone(),
+                                          _gbs,
+                                          std::move(aggs),
+                                          _seekKeysSlots,
+                                          _collatorSlot,
+                                          _commonStats.nodeId);
 }
 
 void HashAggStage::prepare(CompileCtx& ctx) {
@@ -76,6 +83,12 @@ void HashAggStage::prepare(CompileCtx& ctx) {
         _inKeyAccessors.emplace_back(_children[0]->getAccessor(ctx, slot));
         _outKeyAccessors.emplace_back(std::make_unique<HashKeyAccessor>(_htIt, counter++));
         _outAccessors[slot] = _outKeyAccessors.back().get();
+    }
+
+    // Process seek keys (if any). The keys must come from outside of the subtree (by definition) so
+    // we go directly to the compilation context.
+    for (auto& slot : _seekKeysSlots) {
+        _seekKeysAccessors.emplace_back(ctx.getAccessor(slot));
     }
 
     counter = 0;

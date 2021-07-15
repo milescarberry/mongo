@@ -1138,6 +1138,7 @@ public:
         auto groupStage = makeHashAgg(std::move(limitNumChildren),
                                       sbe::makeSV(),
                                       sbe::makeEM(groupSlot, std::move(addToArrayExpr)),
+                                      sbe::makeSV(),
                                       collatorSlot,
                                       _context->planNodeId);
 
@@ -1166,6 +1167,7 @@ public:
             makeHashAgg(std::move(unwindEvalStage),
                         sbe::makeSV(),
                         sbe::makeEM(finalGroupSlot, std::move(finalAddToArrayExpr)),
+                        sbe::makeSV(),
                         collatorSlot,
                         _context->planNodeId);
 

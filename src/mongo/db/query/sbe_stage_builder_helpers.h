@@ -336,6 +336,7 @@ EvalStage makeUnion(std::vector<EvalStage> inputStages,
 EvalStage makeHashAgg(EvalStage stage,
                       sbe::value::SlotVector gbs,
                       sbe::value::SlotMap<std::unique_ptr<sbe::EExpression>> aggs,
+                      sbe::value::SlotVector seekKeys,
                       boost::optional<sbe::value::SlotId> collatorSlot,
                       PlanNodeId planNodeId);
 
